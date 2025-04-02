@@ -50,6 +50,9 @@ public class OverlayService extends Service implements View.OnTouchListener {
     private Resources mResources;
 
     public static final String INTENT_EXTRA_IS_CLOSE_WINDOW = "IsCloseWindow";
+    // Define a unique action string
+    public static final String ACTION_START_SCREEN_CAPTURE = "com.example.overlay.START_SCREEN_CAPTURE";
+
 
     private static OverlayService instance;
     public static boolean isRunning = false;
@@ -175,6 +178,16 @@ public class OverlayService extends Service implements View.OnTouchListener {
         windowManager.addView(flutterView, params);
         moveOverlay(dx, dy, null);
         return START_STICKY;
+    }
+
+    // Call this method from your Dart code via the plugin (or directly from native code)
+    public static void sendStartScreenCaptureBroadcast(Context context) {
+        Intent intent = new Intent(ACTION_START_SCREEN_CAPTURE);
+        // If you use LocalBroadcastManager:
+        context.sendBroadcast(intent);
+
+        // Or, if you want a global broadcast, use:
+        // context.sendBroadcast(intent);
     }
 
 

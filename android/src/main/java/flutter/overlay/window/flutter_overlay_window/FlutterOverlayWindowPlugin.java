@@ -1,4 +1,6 @@
 package flutter.overlay.window.flutter_overlay_window;
+import flutter.overlay.window.flutter_overlay_window.ScreenCaptureHelper;
+
 
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -40,10 +42,16 @@ public class FlutterOverlayWindowPlugin implements
 
     private MethodChannel channel;
     private Context context;
+
+    private static Context appContext;
     private Activity mActivity;
     private BasicMessageChannel<Object> messenger;
     private Result pendingResult;
     final int REQUEST_CODE_FOR_OVERLAY_PERMISSION = 1248;
+    //final int REQUEST_CODE_FOR_SCREEN_CAPTURE = 1250; // Use an unused code
+
+
+
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -121,7 +129,28 @@ public class FlutterOverlayWindowPlugin implements
             result.success(OverlayService.moveOverlay(x, y));
         } else if (call.method.equals("getOverlayPosition")) {
             result.success(OverlayService.getCurrentPosition());
-        } else if (call.method.equals("closeOverlay")) {
+        } else if (call.method.equals("captureOverlayImage")) {
+            // NEW CASE: When the overlay (or main app) calls captureOverlayImage,
+            // use the stored Activity context or the context provided by main app.
+            Log.d("FlutterOverlayWindowPlugin", "captureOverlayImage: ");
+            Context captureContext = (mActivity != null) ? mActivity : NativeContext.getApplicationContext();
+            if (captureContext == null) {
+                result.error("NO_CONTEXT", "No valid context available", null);
+                return;
+            }
+            try {
+                Log.d("FlutterOverlayWindowPlugin", "captureOverlayImage: ");
+                byte[] imageData = ScreenCaptureHelper.capture(captureContext);
+                if (imageData != null && imageData.length > 0) {
+                    result.success(imageData);
+                } else {
+                    result.error("UNAVAILABLE", "No image captured", null);
+                }
+            } catch (Exception e) {
+                result.error("ERROR", e.getMessage(), null);
+            }
+        }
+        else if (call.method.equals("closeOverlay")) {
             if (OverlayService.isRunning) {
                 final Intent i = new Intent(context, OverlayService.class);
                 context.stopService(i);
@@ -139,10 +168,12 @@ public class FlutterOverlayWindowPlugin implements
         channel.setMethodCallHandler(null);
         WindowSetup.messenger.setMessageHandler(null);
     }
-
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
         mActivity = binding.getActivity();
+        Log.d("FlutterOverlayWindowPlugin", "onAttachedToActivity: " + mActivity);
+        NativeContext.setApplicationContext(context);
+
         if (FlutterEngineCache.getInstance().get(OverlayConstants.CACHED_TAG) == null) {
             FlutterEngineGroup enn = new FlutterEngineGroup(context);
             DartExecutor.DartEntrypoint dEntry = new DartExecutor.DartEntrypoint(

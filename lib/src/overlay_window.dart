@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/src/models/overlay_position.dart';
@@ -86,6 +87,24 @@ class FlutterOverlayWindow {
     } on PlatformException catch (error) {
       log("Error requestPermession: $error");
       rethrow;
+    }
+  }
+  static Future<void> requestScreenCapturePermission() async {
+    try {
+      await _channel.invokeMethod("requestScreenCapturePermission");
+      print("Requested screen capture permission");
+    } on PlatformException catch (e) {
+      print("Error requesting permission: ${e.message}");
+    }
+  }
+
+  static Future<Uint8List?> captureOverlayImage() async {
+    try {
+      final Uint8List? imageBytes = await _channel.invokeMethod('captureOverlayImage');
+      return imageBytes;
+    } on PlatformException catch (e) {
+      print("Error capturing overlay image: ${e.message}");
+      return null;
     }
   }
 
